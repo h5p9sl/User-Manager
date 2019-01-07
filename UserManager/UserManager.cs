@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 
 namespace UserManager
 {
-    [Serializable]
     public class UserInformation
     {
         public UInt64 uid;

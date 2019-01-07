@@ -82,6 +82,7 @@ namespace UserManager
                 this.filePath = this.openFileDialog1.FileName;
                 this.Text = this.constTitle + " - " + System.IO.Path.GetFileName(this.filePath);
                 this.loader.LoadDatabase(ref this.userManager, filePath);
+                this.updateUserList();
             }
         }
 
@@ -103,6 +104,7 @@ namespace UserManager
                 this.Text = this.constTitle;
                 this.fileOpened = false;
             }
+            this.userManager.Clear();
         }
 
         private void newToolStripMenuItem_Click(object sender, EventArgs e)

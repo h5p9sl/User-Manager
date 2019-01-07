@@ -5,86 +5,74 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Xml;
+using System.Xml.Serialization;
 
 namespace UserManager
 {
+    public class DBMetadata
+    {
+        public int databaseVersion;
+    }
+
+    public class Database
+    {
+        public DBMetadata metadata = new DBMetadata();
+
+        public List<UserInformation> users = null;
+    }
+
     /// <summary>
-    /// Loads users from database file
+    /// Loads/saves users from/to a database file
     /// </summary>
     class Loader
     {
-        private char[] CStringToCharArray(byte[] rawData, int offset)
-        {
-            int length = 0;
-            for (var i = offset; i < rawData.Length; i++) {
-                if (rawData[i] == '\0') break;
-                length++;
-            }
-            char[] vs = new char[length];
-            Buffer.BlockCopy(vs, offset, vs, 0, length);
-            return vs;
-        }
-
-        private byte[] CStringToByteArray(byte[] rawData, int offset)
-        {
-            int length = 0;
-            for (var i = offset; i < rawData.Length; i++)
-            {
-                if (rawData[i] == '\0') break;
-                length++;
-            }
-            byte[] vs = new byte[length];
-            Buffer.BlockCopy(vs, offset, vs, 0, length);
-            return vs;
-        }
-
-        private void WriteUserToStream(ref StreamWriter stream, UserInformation user)
-        {
-            user.username += '\0';
-
-            BinaryFormatter binaryFormatter = new BinaryFormatter();
-            binaryFormatter.Serialize(stream.BaseStream, user);
-        }
-
         public void SaveDatabase(ref UserManager userManager, string filePath)
         {
-            StreamWriter data = new StreamWriter(filePath);
-            if (userManager != null)
+            using (StreamWriter stream = new StreamWriter(filePath))
             {
-                foreach (var user in userManager)
+                if (userManager != null)
                 {
-                    this.WriteUserToStream(ref data, user);
+                    using (XmlWriter xmlWriter = XmlWriter.Create(stream))
+                    {
+                        Database database = new Database();
+                        database.metadata.databaseVersion = Globals.currentDatabaseVersion;
+                        database.users = userManager;
+
+                        XmlSerializer serializer = new XmlSerializer(typeof(Database));
+                        serializer.Serialize(xmlWriter, database);
+                    }
                 }
+                stream.Close();
             }
-            data.Close();
-            data.Dispose();
         }
 
         public void LoadDatabase(ref UserManager userManager, string filePath)
         {
-            string fileString = File.ReadAllText(filePath);
-            byte[] fileContents = Encoding.ASCII.GetBytes(fileString);
-
-            int index = 0;
-            while (index < fileContents.Length)
+            using (StreamReader stream = new StreamReader(filePath))
             {
-                try
+                if (userManager != null)
                 {
-                    UserInformation user = new UserInformation();
-                    user.uid = BitConverter.ToUInt64(fileContents, index);
-                    index += sizeof(UInt64);
-                    user.username = new string(this.CStringToCharArray(fileContents, index));
-                    index += user.username.Length;
-                    Buffer.BlockCopy(fileContents, index, user.macAddress, 0, 6);
-                    index += user.macAddress.Length;
-                    user.expiryDate = fileContents[index];
-                    index += sizeof(UInt64);
-                    userManager.Add(user);
+                    Database database = null;
+
+                    using (XmlReader xmlWriter = XmlReader.Create(stream))
+                    {
+                        XmlSerializer serializer = new XmlSerializer(typeof(Database));
+                        database = (Database)serializer.Deserialize(xmlWriter);
+                    }
+
+                    if (database.metadata.databaseVersion != Globals.currentDatabaseVersion)
+                    {
+                        // TODO
+                    }
+
+                    // Load all users
+                    foreach (var user in database.users)
+                    {
+                        userManager.Add(user);
+                    }
                 }
-                catch (IndexOutOfRangeException)
-                {
-                    break;
-                }
+                stream.Close();
             }
         }
     }
