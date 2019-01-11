@@ -20,6 +20,7 @@ namespace UserManager
         {
             this.textBox1.Text = this.user.username;
             this.textBox2.Text = this.user.uid.ToString();
+            this.richTextBox1.Text = this.user.notes;
             foreach (var _byte in this.user.macAddress)
             {
                 this.textBox3.AppendText(_byte.ToString());
@@ -71,6 +72,11 @@ namespace UserManager
         {
             this.userManager.ElementAt(this.index).SetTo(this.user);
             this.Close();
+        }
+
+        private void richTextBox1_TextChanged(object sender, EventArgs e)
+        {
+            this.user.notes = this.richTextBox1.Text;
         }
     }
 }

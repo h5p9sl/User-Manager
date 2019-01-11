@@ -12,6 +12,7 @@ namespace UserManager
         public string username;
         public byte[] macAddress;
         public UInt64 expiryDate;
+        public string notes;
 
         public void SetTo(UserInformation user)
         {
